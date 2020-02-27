@@ -1,0 +1,8 @@
+name: AMReplay
+version: 0.0.1
+author: AleMax
+main: alemax.amreplay.AMReplay
+commands:
+  replay:
+    description: Main Command for AMReplay
+    usage: /replay
