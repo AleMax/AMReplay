@@ -25,7 +25,7 @@ public class AMReplay extends JavaPlugin {
     @Override
     public void onDisable() {
         System.out.println("Saving replay");
-
+        listener.save();
     }
 
 

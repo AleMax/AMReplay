@@ -12,6 +12,8 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.util.FileUtil;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,6 +84,29 @@ public class RecordListener implements Listener {
     }
 
     public void save() {
+
+        try {
+            FileOutputStream fos = new FileOutputStream(folder + "/" + "replay.rpl");
+
+            try {
+
+                fos.write(new byte[]{65,77,82,101,112,108,97,121}); //AMReplay
+
+                for(Action action : actions) {
+                    fos.write(action.getActionID());
+                    fos.write(action.toBytes());
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                fos.close();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
     }
 
