@@ -1,25 +1,31 @@
 package alemax.amreplay;
 
-import alemax.amreplay.actions.Action;
-import alemax.amreplay.actions.ReplayCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 
 public class AMReplay extends JavaPlugin {
 
+    public static String PLUGIN_NAME = "AMReplay";
+
+    RecordListener listener;
+    ReplayCommand command;
+
     @Override
     public void onEnable() {
 
-        RecordListener listener = new RecordListener();
+        System.out.println("Setting up Replay");
+
+        listener = new RecordListener(getServer());
         getServer().getPluginManager().registerEvents(listener, this);
 
-        this.getCommand("replay").setExecutor(new ReplayCommand(listener));
-
+        command = new ReplayCommand(listener, getServer());
+        this.getCommand("replay").setExecutor(command);
     }
 
     @Override
     public void onDisable() {
-        super.onDisable();
+        System.out.println("Saving replay");
+
     }
 
 

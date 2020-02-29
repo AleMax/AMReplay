@@ -19,6 +19,11 @@ public class BlockBreakAction extends Action {
     }
 
     @Override
+    public byte getActionID() {
+        return 1;
+    }
+
+    @Override
     public String toString() {
         return "BlockBreakAction after " + (getTimeStamp() / 1000.0) + "s at " + x + " " + y + " " + z;
     }

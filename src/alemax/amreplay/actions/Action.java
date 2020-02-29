@@ -10,6 +10,8 @@ public abstract class Action {
 
     public abstract void onReplay();
 
+    public abstract byte getActionID();
+
     public long getTimeStamp() {
         return timeStamp;
     }

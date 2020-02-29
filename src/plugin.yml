@@ -2,6 +2,7 @@ name: AMReplay
 version: 0.0.1
 author: AleMax
 main: alemax.amreplay.AMReplay
+api-version: 1.15
 commands:
   replay:
     description: Main Command for AMReplay
