@@ -2,19 +2,18 @@ package alemax.amreplay;
 
 import alemax.amreplay.actions.Action;
 import alemax.amreplay.actions.BlockBreakAction;
-import org.bukkit.Server;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.FileUtil;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,6 +23,7 @@ import java.util.Date;
 
 public class RecordListener implements Listener {
 
+    AMReplay plugin;
     private ArrayList<Action> actions;
     private long startupTime;
     private String name;
@@ -32,30 +32,159 @@ public class RecordListener implements Listener {
     private String dataFolderPath;
     private File folder;
 
-    public RecordListener(Server server) {
-        //dataFolderPath = "/" + AMReplay.PLUGIN_NAME + "/";
-        actions = new ArrayList<Action>();
-        startupTime = System.currentTimeMillis();
-        this.server = server;
-        LocalDateTime date = LocalDateTime.now();
-        this.name = date.getYear() + "-" + date.getMonthValue() + "-" + date.getDayOfMonth() + "-" + date.getHour() + "-" + date.getMinute() + "-" + date.getSecond();
+    public boolean recordingMode;
+    private int replayIndex;
+    private int ticksPassed;
+    static int TicksMillisecondsMultiplier = 50;
 
-        createFolder();
-        copyWorld();
+    public String worldFolderPath;
+    public String worldName;
+
+    private int taskID;
+
+    public RecordListener(Server server, boolean recordingMode, AMReplay plugin) {
+        actions = new ArrayList<Action>();
+        this.plugin = plugin;
+
+        this.server = server;
+        this.recordingMode = recordingMode;
+
+        if(recordingMode) {
+            startupTime = System.currentTimeMillis();
+            LocalDateTime date = LocalDateTime.now();
+            this.name = date.getYear() + "-" + date.getMonthValue() + "-" + date.getDayOfMonth() + "-" + date.getHour() + "-" + date.getMinute() + "-" + date.getSecond();
+            createFolder();
+            copyWorld();
+        }
+
+
     }
+
+    public void loadReplay(String name, String worldName) {
+        if(!recordingMode) {
+            this.name = name;
+            File dataFolder = server.getPluginManager().getPlugin(AMReplay.PLUGIN_NAME).getDataFolder();
+            dataFolderPath = dataFolder.getAbsolutePath() + "/";
+            folder = new File(dataFolderPath + name);
+            this.worldName = "AMReplay-" + name + "-" + worldName;
+            worldFolderPath = server.getWorldContainer().getAbsolutePath();
+            worldFolderPath = worldFolderPath.substring(0, worldFolderPath.length() - 1) + this.worldName;
+
+
+            try {
+                FileUtils.copyDirectory(Paths.get(folder.getAbsolutePath()+ "/world/"), Paths.get(worldFolderPath));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            WorldCreator creator = new WorldCreator(this.worldName);
+            creator.createWorld();
+            server.createWorld(creator);
+            //((Player) sender).teleport(new Location(Bukkit.getWorld("worldB"), ((Player) sender).getLocation().getX(), ((Player) sender).getLocation().getY(), ((Player) sender).getLocation().getZ()));
+
+            try {
+                File file = new File(folder + "/" + "replay.rpl");
+                FileInputStream fos = new FileInputStream(file);
+                System.out.println(file.getAbsolutePath());
+                try {
+
+                    byte[] data = new byte[(int) file.length()];
+                    fos.read(data);
+
+
+                    if(data[0] == 65 && data[1] == 77 && data[2] == 82 && data[3] == 101
+                            && data[4] == 112 && data[5] == 108 && data[6] == 97 && data[7] == 121) {
+                        Integer index = 8;
+
+                        Action[] actionLookupTable = {new BlockBreakAction()};
+                        actions.clear();
+
+                        while (index < data.length) {
+                            for (Action action : actionLookupTable) {
+                                if (data[index++] == action.getActionID()) {
+                                    Action newAction = action.fromBytes(index, data);
+                                    actions.add(newAction);
+                                }
+                            }
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    fos.close();
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void watchReplay() {
+        World world = server.getWorld(worldName);
+
+        taskID = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+            @Override
+            public void run() {
+                if(replayIndex < actions.size()) {
+                    while (actions.get(replayIndex).getTimeStamp() < ticksPassed * TicksMillisecondsMultiplier) {
+                        actions.get(replayIndex).onReplay(world);
+                        replayIndex++;
+                        if (replayIndex == actions.size()) break;
+                    }
+                    ticksPassed++;
+                }
+            }
+        }, 0l, 1l).getTaskId();
+    }
+
+    public void stopWatch() {
+        Bukkit.getScheduler().cancelTask(taskID);
+    }
+
+    public void teleportToReplay(Player player) {
+        World replayWorld = server.getWorld(worldName);
+        if(replayWorld != null) {
+            player.teleport(new Location(replayWorld, player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ()));
+        }
+    }
+
+    public void closeReplay() {
+        stopWatch();
+        World replayWorld = server.getWorld(worldName);
+        if(replayWorld.getPlayers() != null) {
+            for (Player player : replayWorld.getPlayers()) {
+                player.teleport(new Location(server.getWorlds().get(0), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ()));
+            }
+        }
+        server.unloadWorld(worldName, false);
+        FileUtils.deleteDirectory(new File(worldFolderPath));
+    }
+
+
+
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
-        Block block = event.getBlock();
-        event.getPlayer().sendMessage(event.getBlock().getType().name());
-        BlockBreakAction action = new BlockBreakAction(startupTime, block.getX(), block.getY(), block.getZ());
-        actions.add(action);
-
+        if(recordingMode) {
+            Block block = event.getBlock();
+            BlockBreakAction action = new BlockBreakAction(startupTime, block.getX(), block.getY(), block.getZ());
+            actions.add(action);
+        }
     }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if(recordingMode) {
+            Block block = event.getBlock();
+            //BlockPlaceEvent action = new BlockBreakAction(startupTime, block.getX(), block.getY(), block.getZ());
+            //actions.add(action);
+        }
+    }
+
 
     private void copyWorld() {
         World overworld = server.getWorlds().get(0);
-        System.out.println(overworld.getName());
         String overworldPath = server.getWorldContainer().getAbsolutePath();
         overworldPath = overworldPath.substring(0, overworldPath.length() - 1) + overworld.getName();
 
@@ -65,12 +194,15 @@ public class RecordListener implements Listener {
 
         try {
             FileUtils.copyDirectory(Paths.get(overworldPath + "/"), Paths.get(newOverworldPath));
+            File uidat = new File(newOverworldPath + "/uid.dat");
+            uidat.delete();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void createFolder() {
+        System.out.println(server);
         File dataFolder = server.getPluginManager().getPlugin(AMReplay.PLUGIN_NAME).getDataFolder();
         dataFolderPath = dataFolder.getAbsolutePath() + "/";
         if(!dataFolder.isDirectory()) {
@@ -84,30 +216,30 @@ public class RecordListener implements Listener {
     }
 
     public void save() {
-
-        try {
-            FileOutputStream fos = new FileOutputStream(folder + "/" + "replay.rpl");
-
+        if(recordingMode) {
             try {
+                FileOutputStream fos = new FileOutputStream(folder + "/" + "replay.rpl");
 
-                fos.write(new byte[]{65,77,82,101,112,108,97,121}); //AMReplay
+                try {
 
-                for(Action action : actions) {
-                    fos.write(action.getActionID());
-                    fos.write(action.toBytes());
+                    fos.write(new byte[]{65,77,82,101,112,108,97,121}); //AMReplay
+
+                    for(Action action : actions) {
+                        fos.write(action.getActionID());
+                        fos.write(action.toBytes());
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    fos.close();
                 }
 
             } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
-                fos.close();
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+            recordingMode = false;
         }
-
-
     }
 
     public void addAction(Action action) {

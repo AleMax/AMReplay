@@ -1,6 +1,7 @@
 package alemax.amreplay.actions;
 
 import com.sun.xml.internal.ws.util.ByteArrayBuffer;
+import org.bukkit.World;
 
 public abstract class Action {
 
@@ -14,7 +15,7 @@ public abstract class Action {
 
     public abstract byte getActionID();
 
-    public abstract void onReplay();
+    public abstract void onReplay(World world);
 
     public abstract byte[] toBytes();
 
@@ -23,4 +24,7 @@ public abstract class Action {
     @Override
     public abstract String toString();
 
+    public long getTimeStamp() {
+        return timeStamp;
+    }
 }

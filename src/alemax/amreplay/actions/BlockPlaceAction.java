@@ -1,23 +1,18 @@
 package alemax.amreplay.actions;
 
-import com.sun.xml.internal.ws.util.ByteArrayBuffer;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.event.block.BlockBreakEvent;
 
-import java.nio.ByteBuffer;
-
-public class BlockBreakAction extends Action {
+public class BlockPlaceAction extends Action {
 
     private int x;
     private int y;
     private int z;
 
-    public BlockBreakAction() {}
+    public BlockPlaceAction() {}
 
-    public BlockBreakAction(long startTimeStamp, int x, int y, int z) {
+    public BlockPlaceAction(long startTimeStamp, int x, int y, int z) {
         super(startTimeStamp);
         this.x = x;
         this.y = y;
@@ -33,7 +28,6 @@ public class BlockBreakAction extends Action {
     public void onReplay(World world) {
         Block block = world.getBlockAt(x, y ,z);
         block.setType(Material.AIR);
-        block.getBlockData();
     }
 
     /**
@@ -79,8 +73,8 @@ public class BlockBreakAction extends Action {
     }
 
     @Override
-    public BlockBreakAction fromBytes(Integer index, byte[] bytes) {
-        BlockBreakAction action = new BlockBreakAction();
+    public BlockPlaceAction fromBytes(Integer index, byte[] bytes) {
+        BlockPlaceAction action = new BlockPlaceAction();
 
         action.timeStamp = ((bytes[index++] & 0xFF) << 56) |
                 ((bytes[index++] & 0xFF) << 48) |
