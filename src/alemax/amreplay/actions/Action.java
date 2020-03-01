@@ -1,5 +1,6 @@
 package alemax.amreplay.actions;
 
+import alemax.amreplay.AMInteger;
 import com.sun.xml.internal.ws.util.ByteArrayBuffer;
 import org.bukkit.World;
 
@@ -19,7 +20,7 @@ public abstract class Action {
 
     public abstract byte[] toBytes();
 
-    public abstract Action fromBytes(Integer index, byte[] bytes);
+    public abstract Action fromBytes(AMInteger index, byte[] bytes);
 
     @Override
     public abstract String toString();

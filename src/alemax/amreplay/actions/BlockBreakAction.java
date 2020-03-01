@@ -1,5 +1,6 @@
 package alemax.amreplay.actions;
 
+import alemax.amreplay.AMInteger;
 import com.sun.xml.internal.ws.util.ByteArrayBuffer;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -79,35 +80,34 @@ public class BlockBreakAction extends Action {
     }
 
     @Override
-    public BlockBreakAction fromBytes(Integer index, byte[] bytes) {
+    public BlockBreakAction fromBytes(AMInteger index, byte[] bytes) {
         BlockBreakAction action = new BlockBreakAction();
 
-        action.timeStamp = ((bytes[index++] & 0xFF) << 56) |
-                ((bytes[index++] & 0xFF) << 48) |
-                ((bytes[index++] & 0xFF) << 40) |
-                ((bytes[index++] & 0xFF) << 32) |
-                ((bytes[index++] & 0xFF) << 24) |
-                ((bytes[index++] & 0xFF) << 16) |
-                ((bytes[index++] & 0xFF) << 8) |
-                ((bytes[index++] & 0xFF) << 0);
+        action.timeStamp = ((bytes[index.value] & 0xFF) << 56) |
+                ((bytes[index.value + 1] & 0xFF) << 48) |
+                ((bytes[index.value + 2] & 0xFF) << 40) |
+                ((bytes[index.value + 3] & 0xFF) << 32) |
+                ((bytes[index.value + 4] & 0xFF) << 24) |
+                ((bytes[index.value + 5] & 0xFF) << 16) |
+                ((bytes[index.value + 6] & 0xFF) << 8) |
+                ((bytes[index.value + 7] & 0xFF) << 0);
 
-        action.x = ((bytes[index++] & 0xFF) << 24) |
-                ((bytes[index++] & 0xFF) << 16) |
-                ((bytes[index++] & 0xFF) << 8) |
-                ((bytes[index++] & 0xFF) << 0);
+        action.x = ((bytes[index.value + 8] & 0xFF) << 24) |
+                ((bytes[index.value + 9] & 0xFF) << 16) |
+                ((bytes[index.value + 10] & 0xFF) << 8) |
+                ((bytes[index.value + 11] & 0xFF) << 0);
 
-        action.y = ((bytes[index++] & 0xFF) << 24) |
-                ((bytes[index++] & 0xFF) << 16) |
-                ((bytes[index++] & 0xFF) << 8) |
-                ((bytes[index++] & 0xFF) << 0);
+        action.y = ((bytes[index.value + 12] & 0xFF) << 24) |
+                ((bytes[index.value + 13] & 0xFF) << 16) |
+                ((bytes[index.value + 14] & 0xFF) << 8) |
+                ((bytes[index.value + 15] & 0xFF) << 0);
 
-        action.z = ((bytes[index++] & 0xFF) << 24) |
-                ((bytes[index++] & 0xFF) << 16) |
-                ((bytes[index++] & 0xFF) << 8) |
-                ((bytes[index++] & 0xFF) << 0);
+        action.z = ((bytes[index.value + 16] & 0xFF) << 24) |
+                ((bytes[index.value + 17] & 0xFF) << 16) |
+                ((bytes[index.value + 18] & 0xFF) << 8) |
+                ((bytes[index.value + 19] & 0xFF) << 0);
 
-        //For the last byte
-        index++;
+        index.value += 21;
 
         return action;
     }

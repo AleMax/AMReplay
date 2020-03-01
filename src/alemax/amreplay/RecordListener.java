@@ -2,6 +2,7 @@ package alemax.amreplay;
 
 import alemax.amreplay.actions.Action;
 import alemax.amreplay.actions.BlockBreakAction;
+import alemax.amreplay.actions.BlockPlaceAction;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -85,7 +86,6 @@ public class RecordListener implements Listener {
             try {
                 File file = new File(folder + "/" + "replay.rpl");
                 FileInputStream fos = new FileInputStream(file);
-                System.out.println(file.getAbsolutePath());
                 try {
 
                     byte[] data = new byte[(int) file.length()];
@@ -94,14 +94,15 @@ public class RecordListener implements Listener {
 
                     if(data[0] == 65 && data[1] == 77 && data[2] == 82 && data[3] == 101
                             && data[4] == 112 && data[5] == 108 && data[6] == 97 && data[7] == 121) {
-                        Integer index = 8;
+                        AMInteger index = new AMInteger(8);
 
-                        Action[] actionLookupTable = {new BlockBreakAction()};
+                        Action[] actionLookupTable = {new BlockBreakAction(), new BlockPlaceAction()};
                         actions.clear();
 
-                        while (index < data.length) {
+                        while (index.value < data.length) {
                             for (Action action : actionLookupTable) {
-                                if (data[index++] == action.getActionID()) {
+                                if (data[index.value] == action.getActionID()) {
+                                    index.value++;
                                     Action newAction = action.fromBytes(index, data);
                                     actions.add(newAction);
                                 }
@@ -177,8 +178,8 @@ public class RecordListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
         if(recordingMode) {
             Block block = event.getBlock();
-            //BlockPlaceEvent action = new BlockBreakAction(startupTime, block.getX(), block.getY(), block.getZ());
-            //actions.add(action);
+            BlockPlaceAction action = new BlockPlaceAction(startupTime, block.getX(), block.getY(), block.getZ(), block);
+            actions.add(action);
         }
     }
 
@@ -202,7 +203,6 @@ public class RecordListener implements Listener {
     }
 
     private void createFolder() {
-        System.out.println(server);
         File dataFolder = server.getPluginManager().getPlugin(AMReplay.PLUGIN_NAME).getDataFolder();
         dataFolderPath = dataFolder.getAbsolutePath() + "/";
         if(!dataFolder.isDirectory()) {
